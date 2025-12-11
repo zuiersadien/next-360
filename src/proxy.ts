@@ -1,3 +1,4 @@
+// middleware.ts
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
@@ -7,29 +8,20 @@ const PUBLIC_PATHS = ["/login"];
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  console.log("Middleware running in prod", request.nextUrl.pathname);
+
   // Permitir archivos estáticos y rutas públicas sin auth
   if (
     pathname.startsWith("/_next") ||
-    pathname.startsWith("/api/auth") ||
+    pathname.startsWith("/api/auth") || // para NextAuth routes
     pathname.startsWith("/static") ||
-    pathname.includes(".")
+    pathname.includes(".") || // archivos estáticos
+    PUBLIC_PATHS.includes(pathname)
   ) {
     return NextResponse.next();
   }
 
-  // Si es ruta pública (login) y ya está autenticado, redirigir a home
-  if (PUBLIC_PATHS.includes(pathname)) {
-    const token = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-    });
-    if (token) {
-      return NextResponse.redirect(new URL("/home", request.url));
-    }
-    return NextResponse.next();
-  }
-
-  // Verificar token para rutas protegidas
+  // Verificar token de sesión JWT
   const token = await getToken({
     req: request,
     secret: process.env.NEXTAUTH_SECRET,
@@ -37,7 +29,8 @@ export async function proxy(request: NextRequest) {
 
   if (!token) {
     // No autenticado, redirigir a login
-    return NextResponse.redirect(new URL("/login", request.url));
+    const loginUrl = new URL("/login", request.url);
+    return NextResponse.redirect(loginUrl);
   }
 
   // Autenticado, continuar
@@ -46,5 +39,5 @@ export async function proxy(request: NextRequest) {
 
 // Configurar rutas donde se aplica middleware
 export const config = {
-  matcher: ["/((?!_next|api/auth|static).*)"], // bloquear todas menos las internas de next y auth
+  matcher: ["/((?!login|_next|api/auth|static).*)"], // bloquea todo excepto login y rutas internas Next
 };
