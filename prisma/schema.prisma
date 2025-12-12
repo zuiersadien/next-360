@@ -21,6 +21,17 @@ model User {
   tokens      Token[]
   sessions    Session[]
   PointMarker PointMarker[]
+  UserCompany UserCompany[]
+}
+
+model UserCompany {
+  userId    Int
+  companyId Int
+
+  user    User    @relation(fields: [userId], references: [id])
+  company Company @relation(fields: [companyId], references: [id])
+
+  @@id([userId, companyId]) // composite primary key
 }
 
 model Session {
@@ -60,6 +71,15 @@ model Project {
   name        String
   File        File[]
   PointMarker PointMarker[]
+  Company     Company?      @relation(fields: [companyId], references: [id])
+  companyId   Int?
+}
+
+model Company {
+  id          Int           @id @default(autoincrement())
+  name        String
+  projects    Project[]
+  UserCompany UserCompany[]
 }
 
 model File {
@@ -67,7 +87,7 @@ model File {
   fileName   String
   filePath   String
   duration   Float
-  startPlace String
+  startPlace Float?
   gpsPoints  GpsPoint[]
 
   tags Int[]

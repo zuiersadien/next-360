@@ -23,6 +23,8 @@ import {
   Project,
   Tag as Itag,
 } from "@prisma/client";
+import { Sidebar } from "primereact/sidebar";
+import { Button } from "primereact/button";
 
 const GpsMap = dynamic(() => import("@/app/components/GpsMap"), {
   ssr: false,
@@ -118,6 +120,8 @@ export default function GalleryPreviewPage() {
     [],
   );
 
+  const [visible, setVisible] = useState(false);
+
   const pointsMarkers = useMemo(() => {
     return fileQuery.data?.project?.PointMarker ?? [];
   }, [fileQuery.data?.project?.PointMarker]);
@@ -193,17 +197,36 @@ export default function GalleryPreviewPage() {
           />
         </div>
 
-        {/* Derecha */}
-        <div className="w-1/2 bg-white border-l h-full flex flex-col overflow-auto">
-          <SidebarLegend
-            tags={tagsQuery.data || []}
-            pointsMarkers={pointsMarkers}
-            onSelectPosition={handleSelectLegendPoint}
-            visibleGroups={visibleGroups}
-            setVisibleGroups={setVisibleGroups}
+        <div className="w-1/2 relative bg-white border-l h-full flex flex-col overflow-auto">
+          <Sidebar
+            modal={false}
+            style={{ width: "30rem" }}
+            header={() => <>Leyenda</>}
+            visible={visible}
+            onHide={() => setVisible(false)}
+          >
+            <SidebarLegend
+              tags={tagsQuery.data || []}
+              pointsMarkers={pointsMarkers}
+              onSelectPosition={handleSelectLegendPoint}
+              visibleGroups={visibleGroups}
+              setVisibleGroups={setVisibleGroups}
+            />
+          </Sidebar>
+          <Button
+            style={{
+              zIndex: 1000,
+              position: "absolute",
+              top: 5,
+              right: 5,
+            }}
+            size="small"
+            severity="info"
+            icon="pi  pi-align-justify"
+            onClick={() => setVisible(true)}
           />
 
-          <div className="shadow-lg p-4 rounded-xl w-full h-full flex-1 min-h-0">
+          <div className="shadow-lg  rounded-xl w-full h-full flex-1 min-h-0">
             <GpsMap
               newPosition={newPosition}
               setNewPosition={setNewPosition}

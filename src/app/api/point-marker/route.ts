@@ -1,5 +1,6 @@
 import db from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const projectId = searchParams.get("projectId");
@@ -8,6 +9,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "projectId requerido" }, { status: 400 });
   }
 
+  // Obtener los pointMarkers con las relaciones
   const data = await db.pointMarker.findMany({
     where: { projectId: Number(projectId) },
     include: {
@@ -18,8 +20,25 @@ export async function GET(req: Request) {
     orderBy: { id: "asc" },
   });
 
-  return NextResponse.json(data);
+  // Extraer todos los IDs únicos de tags (campo Tags en mayúscula)
+  const allTagIds = Array.from(new Set(data.flatMap((p) => p.Tags || [])));
+
+  const tags = await db.tag.findMany({
+    where: { id: { in: allTagIds } },
+  });
+
+  console.log(allTagIds);
+
+  const dataWithTags = data.map((p) => ({
+    ...p,
+    tags: p.Tags
+      ? p.Tags.map((tagId) => tags.find((t) => t.id === tagId)).filter(Boolean)
+      : [],
+  }));
+
+  return NextResponse.json(dataWithTags);
 }
+
 // POST → crear un pointMarker
 export async function POST(req: NextRequest) {
   try {

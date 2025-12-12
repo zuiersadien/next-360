@@ -46,7 +46,7 @@ const Video360Section = React.memo(function Video360({
       viewerRef.current = new View360(container, {
         projection: new EquirectProjection({
           src: video,
-          video: { autoplay: false, muted: false, loop: true },
+          video: { autoplay: true, muted: true, loop: true },
         }),
         plugins: [
           new ControlBar({
@@ -134,7 +134,7 @@ const Video360Section = React.memo(function Video360({
             padding: "6px 10px",
             borderRadius: "6px",
             fontSize: "14px",
-            zIndex: 9999,
+            zIndex: 100,
           }}
         >
           Tiempo: {currentTime.toFixed(2)} s
@@ -149,7 +149,7 @@ const Video360Section = React.memo(function Video360({
             padding: "6px 10px",
             borderRadius: "6px",
             fontSize: "14px",
-            zIndex: 9999,
+            zIndex: 50,
             pointerEvents: "none",
           }}
         >
@@ -195,7 +195,7 @@ const Video360Section = React.memo(function Video360({
                 width: "100%",
                 display: "flex",
                 justifyContent: "center",
-                zIndex: 9999,
+                zIndex: 50,
               }}
             >
               <CustomControls videoRef={videoRef} viewerRef={viewerRef} />

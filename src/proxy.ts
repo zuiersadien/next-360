@@ -4,14 +4,14 @@ import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 
 const PUBLIC_PATHS = ["/login"];
+const ADMIN_ONLY = ["/user"]; // <-- Rutas que requieren ADMIN
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // 1. Log de inicio
   console.log("Middleware START:", pathname);
 
-  // Permitir archivos estáticos y rutas públicas sin auth
+  // Permitir archivos estáticos y rutas públicas
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/api/auth") ||
@@ -19,17 +19,8 @@ export async function proxy(request: NextRequest) {
     pathname.includes(".") ||
     PUBLIC_PATHS.includes(pathname)
   ) {
-    console.log("Middleware END: Public path/Bypass");
+    console.log("Middleware END: Public / Bypass");
     return NextResponse.next();
-  }
-
-  const secretExists = !!process.env.NEXTAUTH_SECRET;
-  console.log(`Middleware CHECK: NEXTAUTH_SECRET exists? ${secretExists}`);
-
-  if (!secretExists) {
-    console.error(
-      "CRITICAL ERROR: NEXTAUTH_SECRET is MISSING in Edge Runtime!",
-    );
   }
 
   const token = await getToken({
@@ -37,24 +28,34 @@ export async function proxy(request: NextRequest) {
     secret: process.env.NEXTAUTH_SECRET,
   });
 
-  // 4. Log del Token
   console.log(
     `Middleware CHECK: Token status -> ${token ? "Authenticated" : "Unauthenticated"}`,
   );
 
+  // No autenticado
   if (!token) {
-    // 5. Redirección
-    console.log("Middleware END: Redirecting to /login");
-    const loginUrl = new URL("/login", request.url);
-    return NextResponse.redirect(loginUrl);
+    console.log("Middleware END: Redirect to /login");
+    return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  // 6. Continuar
-  console.log("Middleware END: Authorized access");
+  // --------- 🔒 PROTECCIÓN POR ROL (ADMIN) ---------
+  const isAdmin = token.role === "ADMIN";
+
+  const isAdminRoute = ADMIN_ONLY.some((route) => pathname.startsWith(route));
+
+  if (isAdminRoute && !isAdmin) {
+    console.log("Middleware BLOCKED: User lacks ADMIN role");
+
+    const homeUrl = new URL("/home", request.url);
+    return NextResponse.redirect(homeUrl);
+  }
+  // ---------------------------------------------------
+
+  console.log("Middleware END: Authorized Access");
   return NextResponse.next();
 }
 
-// Configurar rutas donde se aplica middleware
+// Aplica a toda la app excepto login, next, auth
 export const config = {
-  matcher: ["/((?!login|_next|api/auth|static).*)"], // bloquea todo excepto login y rutas internas Next
+  matcher: ["/((?!login|_next|api/auth|static).*)"],
 };

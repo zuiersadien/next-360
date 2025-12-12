@@ -11,20 +11,20 @@ export const authOptions: NextAuthOptions = {
     CredentialsProvider({
       name: "Credentials",
       credentials: {
-        email: {
-          label: "Email",
-          type: "email",
-          placeholder: "you@example.com",
-        },
+        email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
+
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          return null;
-        }
+        if (!credentials?.email || !credentials.password) return null;
 
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
+          include: {
+            UserCompany: {
+              include: { company: true },
+            },
+          },
         });
 
         if (!user) return null;
@@ -35,11 +35,13 @@ export const authOptions: NextAuthOptions = {
         );
         if (!isValid) return null;
 
+        // Retornar lo que irá al JWT
         return {
-          id: user.id.toString(), // NextAuth espera string id
-          name: user.name || null,
+          id: user.id.toString(),
+          name: user.name,
           email: user.email,
-          role: user.role, // Asegúrate que existe en tu modelo Prisma
+          role: user.role,
+          companies: user.UserCompany.map((uc) => uc.company),
         };
       },
     }),
@@ -57,15 +59,18 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id;
         token.role = user.role;
         token.email = user.email;
+        token.name = user.name;
+        token.companies = user.companies; // LISTA DE EMPRESAS
       }
       return token;
     },
+
     async session({ session, token }) {
-      if (token) {
-        session.user.id = token.id as string;
-        session.user.role = token.role as string;
-        session.user.email = token.email as string;
-      }
+      session.user.id = token.id as string;
+      session.user.role = token.role as string;
+      session.user.email = token.email as string;
+      session.user.name = token.name as string;
+      session.user.companies = token.companies as any[];
       return session;
     },
   },

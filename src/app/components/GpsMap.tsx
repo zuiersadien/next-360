@@ -522,8 +522,29 @@ function GpsMap({
   const onCancelAdding = () => {
     setAddingMode(false);
   };
+
+  useEffect(() => {
+    console.log("cambiar cursor");
+    const mapContainer =
+      document.querySelector<HTMLDivElement>(".leaflet-container");
+
+    if (!mapContainer) return;
+
+    if (addingMode) {
+      mapContainer.style.cursor = "crosshair"; // 👈 cursor en modo agregar
+    } else {
+      mapContainer.style.cursor = ""; // Leaflet vuelve a su cursor normal
+    }
+  }, [addingMode]);
   return (
-    <div style={{ position: "relative", height: "100%", width: "100%" }}>
+    <div
+      style={{
+        position: "relative",
+        height: "100%",
+        width: "100%",
+        cursor: addingMode ? "crosshair" : "grab",
+      }}
+    >
       <MapContainer
         center={center}
         zoom={15}

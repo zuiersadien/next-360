@@ -1,130 +1,149 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { Button } from "primereact/button"
-import { Dialog } from "primereact/dialog"
-import { InputText } from "primereact/inputtext"
-import { Dropdown } from "primereact/dropdown"
-import { DataTable } from "primereact/datatable"
-import { Column } from "primereact/column"
+import { useEffect, useState } from "react";
+import { Button } from "primereact/button";
+import { Dialog } from "primereact/dialog";
+import { InputText } from "primereact/inputtext";
+import { Dropdown } from "primereact/dropdown";
+import { MultiSelect } from "primereact/multiselect";
+import { DataTable } from "primereact/datatable";
+import { Column } from "primereact/column";
 
-// -----------------------------
-// 🔹 Types TS
-// -----------------------------
 export type User = {
-  id: number
-  name: string | null
-  email: string
-  role: "USER" | "ADMIN"
-  hashedPassword: string | null
-  createdAt: string
-  updatedAt: string
-}
+  id: number;
+  name: string | null;
+  email: string;
+  role: "USER" | "ADMIN";
+  hashedPassword: string | null;
+  createdAt: string;
+  updatedAt: string;
+
+  companies?: { companyId: number; company: Company }[];
+};
+
+export type Company = {
+  id: number;
+  name: string;
+};
 
 type UserForm = {
-  name: string
-  email: string
-  role: "USER" | "ADMIN"
-  hashedPassword: string
-}
+  name: string;
+  email: string;
+  role: "USER" | "ADMIN";
+  hashedPassword: string;
+  companyIds: number[];
+};
 
 export default function UserCrudPage() {
-  const [users, setUsers] = useState<User[]>([])
-  const [loading, setLoading] = useState(true)
+  const [users, setUsers] = useState<User[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const [showForm, setShowForm] = useState(false)
-  const [editingUser, setEditingUser] = useState<User | null>(null)
+  const [showForm, setShowForm] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
 
   const [form, setForm] = useState<UserForm>({
     name: "",
     email: "",
     role: "USER",
     hashedPassword: "",
-  })
+    companyIds: [],
+  });
 
   const roles = [
     { label: "User", value: "USER" },
     { label: "Admin", value: "ADMIN" },
-  ]
+  ];
 
   async function fetchUsers() {
-    const res = await fetch("/api/user")
-    const data: User[] = await res.json()
-    setUsers(data)
-    setLoading(false)
+    const res = await fetch("/api/user");
+    const data: User[] = await res.json();
+    setUsers(data);
+    setLoading(false);
+  }
+
+  async function fetchCompanies() {
+    const res = await fetch("/api/company");
+    const data: Company[] = await res.json();
+    setCompanies(data);
   }
 
   useEffect(() => {
-    fetchUsers()
-  }, [])
+    fetchUsers();
+    fetchCompanies();
+  }, []);
 
-  // Nueva creación
   function openCreate() {
-    setEditingUser(null)
+    setEditingUser(null);
     setForm({
       name: "",
       email: "",
       role: "USER",
       hashedPassword: "",
-    })
-    setShowForm(true)
+      companyIds: [],
+    });
+    setShowForm(true);
   }
 
-  // Edición
   function openEdit(user: User) {
-    setEditingUser(user)
+    setEditingUser(user);
+
     setForm({
       name: user.name || "",
       email: user.email,
       role: user.role,
       hashedPassword: user.hashedPassword || "",
-    })
-    setShowForm(true)
+      companyIds: user.companies?.map((c) => c.companyId) || [],
+    });
+
+    setShowForm(true);
   }
 
-  // -----------------------------
-  // 🔹 TIPADO DELETE
-  // -----------------------------
   async function deleteUser(id: User["id"]) {
-    await fetch(`/api/user/${id}`, { method: "DELETE" })
-    await fetchUsers()
+    await fetch(`/api/user/${id}`, { method: "DELETE" });
+    await fetchUsers();
   }
 
-  // -----------------------------
-  // 🔹 TIPADO CREATE / UPDATE
-  // -----------------------------
   async function saveUser() {
     if (editingUser) {
       await fetch(`/api/user/${editingUser.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form satisfies UserForm),
-      })
+        body: JSON.stringify(form),
+      });
     } else {
       await fetch("/api/user", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form satisfies UserForm),
-      })
+        body: JSON.stringify(form),
+      });
     }
 
-    setShowForm(false)
-    fetchUsers()
+    setShowForm(false);
+    fetchUsers();
   }
 
-  // Footer tipado para dialog
   const formFooter = (
     <div className="flex justify-end gap-2">
-      <Button label="Cancelar" severity="secondary" onClick={() => setShowForm(false)} />
+      <Button
+        label="Cancelar"
+        severity="secondary"
+        onClick={() => setShowForm(false)}
+      />
       <Button label="Guardar" icon="pi pi-check" onClick={saveUser} />
     </div>
-  )
+  );
 
   return (
     <div className="p-2">
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">Usuarios</h1>
-        <Button size="small" label="Nuevo Usuario" icon="pi pi-plus" onClick={openCreate} />
+        <Button
+          size="small"
+          label="Nuevo Usuario"
+          icon="pi pi-plus"
+          onClick={openCreate}
+        />
       </div>
 
       <DataTable value={users} size="small" loading={loading}>
@@ -132,6 +151,13 @@ export default function UserCrudPage() {
         <Column field="name" header="Nombre" />
         <Column field="email" header="Email" />
         <Column field="role" header="Rol" />
+
+        <Column
+          header="Empresas"
+          body={(row: User) =>
+            row.companies?.map((c) => c.company.name).join(", ") || "-"
+          }
+        />
 
         <Column
           header="Acciones"
@@ -142,7 +168,6 @@ export default function UserCrudPage() {
                 icon="pi pi-pencil"
                 text
                 rounded
-                className="p-button-sm p-button-warning"
                 onClick={() => openEdit(row)}
               />
               <Button
@@ -151,7 +176,6 @@ export default function UserCrudPage() {
                 size="small"
                 severity="danger"
                 icon="pi pi-trash"
-                className="p-button-sm p-button-danger"
                 onClick={() => deleteUser(row.id)}
               />
             </div>
@@ -159,7 +183,6 @@ export default function UserCrudPage() {
         />
       </DataTable>
 
-      {/* Modal Form */}
       <Dialog
         header={editingUser ? "Editar Usuario" : "Nuevo Usuario"}
         visible={showForm}
@@ -201,11 +224,29 @@ export default function UserCrudPage() {
             <InputText
               className="w-full"
               value={form.hashedPassword}
-              onChange={(e) => setForm({ ...form, hashedPassword: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, hashedPassword: e.target.value })
+              }
+            />
+          </div>
+
+          {/* 🔥 MULTISELECT DE COMPAÑÍAS */}
+          <div>
+            <label className="font-medium">Empresas</label>
+            <MultiSelect
+              className="w-full"
+              value={form.companyIds}
+              options={companies.map((c) => ({
+                label: c.name,
+                value: c.id,
+              }))}
+              onChange={(e) => setForm({ ...form, companyIds: e.value })}
+              placeholder="empresas"
+              display="chip"
             />
           </div>
         </div>
       </Dialog>
     </div>
-  )
+  );
 }

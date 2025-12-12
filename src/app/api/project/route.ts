@@ -8,6 +8,7 @@ export async function GET() {
       include: {
         File: true,
         PointMarker: true,
+        Company: true, // Incluye la compañía relacionada
       },
     });
 
@@ -24,7 +25,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { name } = body;
+    const { name, companyId } = body;
 
     if (!name) {
       return NextResponse.json(
@@ -32,9 +33,23 @@ export async function POST(req: NextRequest) {
         { status: 400 },
       );
     }
+    if (!companyId) {
+      return NextResponse.json(
+        { error: "El campo 'companyId' es obligatorio" },
+        { status: 400 },
+      );
+    }
 
     const project = await db.project.create({
-      data: { name },
+      data: {
+        name,
+        Company: {
+          connect: { id: companyId },
+        },
+      },
+      include: {
+        Company: true,
+      },
     });
 
     return NextResponse.json(project, { status: 201 });
@@ -50,7 +65,7 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   try {
     const body = await req.json();
-    const { id, name } = body;
+    const { id, name, companyId } = body;
 
     if (!id) {
       return NextResponse.json(
@@ -58,10 +73,30 @@ export async function PUT(req: NextRequest) {
         { status: 400 },
       );
     }
+    if (!name) {
+      return NextResponse.json(
+        { error: "El campo 'name' es obligatorio" },
+        { status: 400 },
+      );
+    }
+    if (!companyId) {
+      return NextResponse.json(
+        { error: "El campo 'companyId' es obligatorio" },
+        { status: 400 },
+      );
+    }
 
     const project = await db.project.update({
       where: { id },
-      data: { name },
+      data: {
+        name,
+        Company: {
+          connect: { id: companyId },
+        },
+      },
+      include: {
+        Company: true,
+      },
     });
 
     return NextResponse.json(project);

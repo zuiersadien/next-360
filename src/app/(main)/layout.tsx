@@ -1,5 +1,4 @@
 "use client";
-import SidebarLegend from "../components/SidebarLegend";
 import Sidebar from "../components/Sidebar";
 import { SessionProvider } from "next-auth/react";
 const queryClient = new QueryClient();
@@ -12,15 +11,15 @@ export default function MainLayout({
 }) {
   return (
     <div className="flex">
-      <Sidebar />
+      <SessionProvider>
+        <Sidebar />
 
-      <main className="flex-1 overflow-y-auto bg-gray-50">
-        <SessionProvider>
+        <main className="flex-1 overflow-y-auto bg-gray-50">
           <QueryClientProvider client={queryClient}>
             {children}
           </QueryClientProvider>
-        </SessionProvider>
-      </main>
+        </main>
+      </SessionProvider>
     </div>
   );
 }

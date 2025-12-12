@@ -30,17 +30,44 @@ export async function GET(req: Request) {
 export async function PUT(req: Request) {
   try {
     const url = new URL(req.url);
-    const parts = url.pathname.split("/");
-    const id = parts[parts.length - 1];
+    const id = Number(url.pathname.split("/").pop());
 
-    const data = await req.json();
+    const body = await req.json();
+    const { companyIds, hashedPassword, ...userData } = body;
+
+    // No permitir actualizar hashedPassword por accidente
+    if (!hashedPassword) delete userData.hashedPassword;
+
+    const dataToUpdate: any = { ...userData };
+
+    // Si vienen companyIds, actualizamos la relación
+    if (Array.isArray(companyIds)) {
+      dataToUpdate.UserCompany = {
+        deleteMany: {
+          userId: id,
+        },
+        create: companyIds.map((companyId: number) => ({
+          companyId,
+        })),
+      };
+    }
 
     const updated = await db.user.update({
-      where: { id: Number(id) },
-      data,
+      where: { id },
+      data: dataToUpdate,
+      include: {
+        UserCompany: {
+          include: {
+            company: true,
+          },
+        },
+      },
     });
 
-    return NextResponse.json(updated);
+    // Eliminar hashedPassword de la respuesta
+    const { hashedPassword: removed, ...safeUser } = updated;
+
+    return NextResponse.json(safeUser);
   } catch (error) {
     console.error(error);
     return NextResponse.json(

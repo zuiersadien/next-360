@@ -4,8 +4,25 @@ import db from "@/lib/db";
 
 export async function GET() {
   try {
-    const users = await db.user.findMany();
-    return NextResponse.json(users);
+    const users = await db.user.findMany({
+      include: {
+        UserCompany: {
+          include: { company: true },
+        },
+      },
+    });
+
+    return NextResponse.json(
+      users.map((u) => ({
+        ...u,
+        hashedPassword: null,
+        companies: u.UserCompany.map((uc) => ({
+          companyId: uc.companyId,
+          company: uc.company,
+        })),
+        UserCompany: undefined, // opcional: ocultarlo
+      })),
+    );
   } catch (error) {
     console.error(error);
     return NextResponse.json(
@@ -17,21 +34,44 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const { name, email, hashedPassword, role } = await req.json();
+    const {
+      name,
+      email,
+      hashedPassword,
+      role,
+      companyIds = [],
+    } = await req.json();
 
-    // Hashear con bcryptjs (PURO JS, sin binarios nativos)
-    const password = await bcrypt.hash(hashedPassword, 10);
+    const password = hashedPassword
+      ? await bcrypt.hash(hashedPassword, 10)
+      : null;
 
+    // Crear usuario + relaciones
     const newUser = await db.user.create({
       data: {
         name,
         email,
-        hashedPassword: password,
         role: role || "USER",
+        hashedPassword: password,
+
+        // 📌 Crear relaciones en UserCompany
+        UserCompany: {
+          create: companyIds.map((companyId: number) => ({
+            companyId,
+          })),
+        },
+      },
+      include: {
+        UserCompany: {
+          include: { company: true },
+        },
       },
     });
 
-    return NextResponse.json(newUser);
+    // No devolver el hash nunca
+    const { hashedPassword: _, ...safeUser } = newUser;
+
+    return NextResponse.json(safeUser);
   } catch (error) {
     console.error(error);
     return NextResponse.json(

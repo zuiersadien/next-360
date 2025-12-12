@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import type { Route } from "next";
 import { InputText } from "primereact/inputtext";
@@ -9,7 +8,7 @@ import { Button } from "primereact/button";
 import { classNames } from "primereact/utils";
 import { useFormik } from "formik";
 import { z, ZodSchema, ZodIssue } from "zod";
-import { Login } from "../validations"; // Tu esquema Zod
+import { Login } from "../validations";
 import { signIn } from "next-auth/react";
 
 // Adaptador para usar Zod en Formik (corrige uso de error.issues)
