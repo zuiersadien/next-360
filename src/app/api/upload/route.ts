@@ -371,7 +371,7 @@ async function updateInDatabase(
 async function saveToDatabase(
   mp4FilePath: string,
   fileName: string,
-  startPlace: string,
+  startPlace: number,
   cleanGPS: GpsPointDB[],
   projectId: number,
 ): Promise<{ fileId: number; totalDistance: number }> {
@@ -541,7 +541,7 @@ export async function POST(req: Request) {
     const { fileId, totalDistance } = await saveToDatabase(
       originalFilePath,
       fileName,
-      startPlace,
+      Number(startPlace),
       gpsPointsWithDistances,
       projectId,
     );
